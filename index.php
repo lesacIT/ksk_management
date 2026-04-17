@@ -39,7 +39,7 @@ $stats = $stmt->fetch(PDO::FETCH_ASSOC);
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="text-dark"><i class="bi bi-clipboard2-pulse"></i> Quản lý khám sức khỏe định kỳ</h2>
         <div>
-            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#importModal"><i class="bi bi-upload"></i> Import CSV</button>
+          
             <button class="btn btn-info" onclick="location.reload();"><i class="bi bi-arrow-repeat"></i> Tải lại</button>
         </div>
     </div>
@@ -128,30 +128,34 @@ $stats = $stmt->fetch(PDO::FETCH_ASSOC);
     </div>
 
     <!-- Modal Import CSV -->
-    <div class="modal fade" id="importModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title"><i class="bi bi-upload"></i> Import danh sách nhân viên từ CSV</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form id="importForm" enctype="multipart/form-data" action="import_csv.php" method="post">
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Chọn file CSV (UTF-8, dấu phẩy)</label>
-                            <input type="file" name="csv_file" class="form-control" accept=".csv" required>
-                            <div class="form-text">File CSV phải có các cột: EmpNo, Name, BP, Gender,... (xem hướng dẫn)</div>
-                        </div>
-                        <div id="importMsg"></div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Import</button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                    </div>
-                </form>
+   <!-- Modal Import CSV -->
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-upload"></i> Import danh sách nhân viên từ CSV</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
+            <form id="importForm" enctype="multipart/form-data" action="import_csv.php" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Chọn file CSV (UTF-8, dấu phẩy)</label>
+                        <input type="file" name="csv_file" class="form-control" accept=".csv" required>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle"></i> Yêu cầu đúng định dạng cột: EmpNo, Name, BP, Gender, ... 
+                            <a href="sample_import.csv" download class="ms-2"><i class="bi bi-download"></i> Tải file mẫu CSV</a>
+                        </div>
+                    </div>
+                    <div id="importMsg"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Import</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
 
     <!-- Modal sửa ghi chú -->
     <div class="modal fade" id="noteModal" tabindex="-1">

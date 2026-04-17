@@ -97,5 +97,31 @@ if ($action == 'getMissing') {
     echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
     exit;
 }
+if ($action == 'statsByDateRange') {
+    $from = $_GET['from'] . ' 00:00:00';
+    $to = $_GET['to'] . ' 23:59:59';
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM employees WHERE is_received = 1 AND received_date BETWEEN ? AND ?");
+    $stmt->execute([$from, $to]);
+    $total = $stmt->fetchColumn();
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM employees WHERE is_received = 1 AND is_returned = 1 AND received_date BETWEEN ? AND ?");
+    $stmt->execute([$from, $to]);
+    $returned = $stmt->fetchColumn();
+    $not_returned = $total - $returned;
+    $stmt = $pdo->prepare("SELECT DATE(received_date) as date, COUNT(*) as count FROM employees WHERE is_received = 1 AND received_date BETWEEN ? AND ? GROUP BY DATE(received_date) ORDER BY date");
+    $stmt->execute([$from, $to]);
+    $daily = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    echo json_encode(['success' => true, 'total' => $total, 'returned' => $returned, 'not_returned' => $not_returned, 'daily' => $daily]);
+    exit;
+}
+
+if ($action == 'employeesByDateRange') {
+    $from = $_GET['from'] . ' 00:00:00';
+    $to = $_GET['to'] . ' 23:59:59';
+    $stmt = $pdo->prepare("SELECT emp_no, name, bp, gender, received_date, is_returned FROM employees WHERE is_received = 1 AND received_date BETWEEN ? AND ? ORDER BY received_date DESC");
+    $stmt->execute([$from, $to]);
+    $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    echo json_encode(['success' => true, 'data' => $data]);
+    exit;
+}
 echo json_encode(['error' => 'Invalid action']);
 ?>
