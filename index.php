@@ -39,8 +39,9 @@ $stats = $stmt->fetch(PDO::FETCH_ASSOC);
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="text-dark"><i class="bi bi-clipboard2-pulse"></i> Quản lý khám sức khỏe định kỳ</h2>
         <div>
-          
-            <button class="btn btn-info" onclick="location.reload();"><i class="bi bi-arrow-repeat"></i> Tải lại</button>
+            <a href="admin_stats.php" class="btn btn-info"><i class="bi bi-graph-up"></i> Thống kê</a>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#importModal"><i class="bi bi-upload"></i> Import CSV</button>
+            <button class="btn btn-secondary" onclick="location.reload();"><i class="bi bi-arrow-repeat"></i> Tải lại</button>
         </div>
     </div>
 
@@ -120,42 +121,39 @@ $stats = $stmt->fetch(PDO::FETCH_ASSOC);
                     <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Danh sách chưa hoàn thành</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body" id="missingContent">
-                    <!-- load bằng ajax -->
-                </div>
+                <div class="modal-body" id="missingContent"></div>
             </div>
         </div>
     </div>
 
     <!-- Modal Import CSV -->
-   <!-- Modal Import CSV -->
-<div class="modal fade" id="importModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title"><i class="bi bi-upload"></i> Import danh sách nhân viên từ CSV</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="importForm" enctype="multipart/form-data" action="import_csv.php" method="post">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Chọn file CSV (UTF-8, dấu phẩy)</label>
-                        <input type="file" name="csv_file" class="form-control" accept=".csv" required>
-                        <div class="form-text">
-                            <i class="bi bi-info-circle"></i> Yêu cầu đúng định dạng cột: EmpNo, Name, BP, Gender, ... 
-                            <a href="sample_import.csv" download class="ms-2"><i class="bi bi-download"></i> Tải file mẫu CSV</a>
+    <div class="modal fade" id="importModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="bi bi-upload"></i> Import danh sách nhân viên từ CSV</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="importForm" enctype="multipart/form-data" action="import_csv.php" method="post">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Chọn file CSV (UTF-8, dấu phẩy)</label>
+                            <input type="file" name="csv_file" class="form-control" accept=".csv" required>
+                            <div class="form-text">
+                                <i class="bi bi-info-circle"></i> Yêu cầu đúng định dạng cột: EmpNo, Name, BP, Gender, ... 
+                                <a href="sample_import.csv" download class="ms-2"><i class="bi bi-download"></i> Tải file mẫu CSV</a>
+                            </div>
                         </div>
+                        <div id="importMsg"></div>
                     </div>
-                    <div id="importMsg"></div>
-                </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary">Import</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                </div>
-            </form>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Import</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 
     <!-- Modal sửa ghi chú -->
     <div class="modal fade" id="noteModal" tabindex="-1">
@@ -207,13 +205,14 @@ $(document).ready(function() {
         language: { url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" }
     });
 
-    // Cập nhật trạng thái qua AJAX (không reload bảng)
+    // Hàm cập nhật trạng thái không reload bảng
     function updateStatus(emp_no, action, callback) {
         $.post('api.php', { action: action, emp_no: emp_no }, function(res) {
-            if(res.success) {
-                if(callback) callback();
-                // Tìm dòng hiện tại của nhân viên
-                var $row = $('button[data-emp="'+emp_no+'"]').closest('tr');
+            if (res.success) {
+                if (callback) callback();
+                // Tìm dòng hiện tại trong DataTable
+                var $btn = $('button[data-emp="'+emp_no+'"]').first();
+                var $row = $btn.closest('tr');
                 var rowData = table.row($row).data();
                 if (rowData) {
                     if (action === 'receive') {
@@ -247,17 +246,20 @@ $(document).ready(function() {
     });
     $('#employeeTable').on('click', '.btn-print', function() {
         let emp = $(this).data('emp');
-        // Tăng số lần in và cập nhật trực tiếp dòng
         $.post('api.php', { action: 'increasePrint', emp_no: emp }, function(res) {
-            if(res.success) {
-                var $row = $('button[data-emp="'+emp+'"]').closest('tr');
+            if (res.success) {
+                // Cập nhật số lần in trên dòng
+                var $btn = $('button[data-emp="'+emp+'"]').first();
+                var $row = $btn.closest('tr');
                 var rowData = table.row($row).data();
                 if (rowData) {
                     rowData.printed_count = (parseInt(rowData.printed_count) || 0) + 1;
                     table.row($row).data(rowData).draw(false);
                 }
                 window.open('print_prescription.php?emp_no=' + emp, '_blank');
-            } else alert(res.message);
+            } else {
+                alert(res.message);
+            }
         }, 'json');
     });
     $('#employeeTable').on('click', '.btn-note', function() {
@@ -272,15 +274,18 @@ $(document).ready(function() {
         let emp = $('#noteEmpNo').val();
         let note = $('#noteText').val();
         $.post('api.php', { action: 'updateNote', emp_no: emp, note: note }, function(res) {
-            if(res.success) {
+            if (res.success) {
                 $('#noteModal').modal('hide');
-                var $row = $('button[data-emp="'+emp+'"]').closest('tr');
+                var $btn = $('button[data-emp="'+emp+'"]').first();
+                var $row = $btn.closest('tr');
                 var rowData = table.row($row).data();
                 if (rowData) {
                     rowData.note = note;
                     table.row($row).data(rowData).draw(false);
                 }
-            } else alert('Lỗi cập nhật ghi chú');
+            } else {
+                alert('Lỗi cập nhật ghi chú');
+            }
         }, 'json');
     });
 
@@ -299,7 +304,9 @@ $(document).ready(function() {
                     <button class="btn btn-sm btn-secondary mt-2" onclick="quickReturn('${data.emp_no}')">Nhận hồ sơ</button>
                 </div>`;
                 $('#quickResult').html(html);
-            } else $('#quickResult').html('<div class="alert alert-danger">Không tìm thấy nhân viên</div>');
+            } else {
+                $('#quickResult').html('<div class="alert alert-danger">Không tìm thấy nhân viên</div>');
+            }
         }, 'json');
     });
 
@@ -307,7 +314,7 @@ $(document).ready(function() {
     window.quickPrint = (emp) => {
         $.post('api.php', { action: 'increasePrint', emp_no: emp }, function(res) {
             if(res.success) window.open('print_prescription.php?emp_no='+emp, '_blank');
-        },'json');
+        }, 'json');
     };
     window.quickReturn = (emp) => updateStatus(emp, 'return', () => $('#quickResult').empty());
 

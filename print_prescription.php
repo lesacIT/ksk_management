@@ -2,19 +2,13 @@
 require_once 'config.php';
 
 $emp_no = $_GET['emp_no'] ?? '';
-$force = isset($_GET['force']) && $_GET['force'] == 1;
-
 if (!$emp_no) die('Thiếu mã nhân viên');
 
 $storageDir = __DIR__ . '/prescriptions';
-if (!is_dir($storageDir)) {
-    mkdir($storageDir, 0777, true);
-}
 
 // Kiểm tra file PDF trước
 $pdfPath = $storageDir . '/' . $emp_no . '.pdf';
-if (file_exists($pdfPath) && !$force) {
-    // Nếu có file PDF, hiển thị nó trong trình duyệt (inline) để in
+if (file_exists($pdfPath)) {
     header('Content-Type: application/pdf');
     header('Content-Disposition: inline; filename="' . $emp_no . '.pdf"');
     readfile($pdfPath);
@@ -23,78 +17,146 @@ if (file_exists($pdfPath) && !$force) {
 
 // Nếu không có PDF, kiểm tra file HTML
 $htmlPath = $storageDir . '/' . $emp_no . '.html';
-if (file_exists($htmlPath) && !$force) {
+if (file_exists($htmlPath)) {
     $html = file_get_contents($htmlPath);
+    // Thêm script tự động in
+    $html = str_replace('</body>', 
+        '<script>
+            window.onload = function() { window.print(); };
+        </script></body>', $html);
     echo $html;
     exit;
 }
 
-// Nếu chưa có file nào (hoặc force), tạo mới HTML từ database
-$stmt = $pdo->prepare("SELECT * FROM employees WHERE emp_no = ?");
-$stmt->execute([$emp_no]);
-$emp = $stmt->fetch(PDO::FETCH_ASSOC);
-if (!$emp) die('Không tìm thấy nhân viên');
-
-ob_start();
+// Không tìm thấy file nào
 ?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Phiếu chỉ định - <?= htmlspecialchars($emp['emp_no']) ?></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Không tìm thấy phiếu chỉ định</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        @media print { .no-print { display: none; } body { margin: 0; padding: 0; } }
-        body { font-family: 'Times New Roman', Arial, sans-serif; margin: 20px; }
-        .prescription-card { max-width: 800px; margin: auto; border: 1px solid #000; padding: 20px; border-radius: 10px; background: white; }
-        .header { text-align: center; margin-bottom: 20px; }
-        .title { font-size: 22px; font-weight: bold; }
-        .info-row { margin-bottom: 8px; }
-        .danh-muc { margin-top: 20px; }
-        .danh-muc ul { list-style-type: square; }
-        .signature { margin-top: 40px; display: flex; justify-content: space-between; }
-        .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #555; }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .error-card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            max-width: 550px;
+            width: 100%;
+            text-align: center;
+            animation: fadeInUp 0.6s ease-out;
+        }
+        .error-header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 30px 20px;
+            color: white;
+        }
+        .error-header i {
+            font-size: 72px;
+            margin-bottom: 15px;
+            display: inline-block;
+            animation: shake 0.5s ease-in-out;
+        }
+        .error-header h3 {
+            font-weight: 700;
+            margin: 0;
+            font-size: 28px;
+        }
+        .error-body {
+            padding: 40px 30px 30px;
+        }
+        .emp-code {
+            background: #f8f9fc;
+            padding: 12px;
+            border-radius: 50px;
+            font-family: monospace;
+            font-size: 22px;
+            font-weight: bold;
+            color: #e74a3b;
+            letter-spacing: 1px;
+            display: inline-block;
+            margin: 15px 0;
+            border: 1px dashed #e74a3b;
+        }
+        .message-text {
+            color: #5a5c69;
+            font-size: 16px;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        .btn-close-window {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            padding: 12px 32px;
+            border-radius: 50px;
+            font-weight: 600;
+            color: white;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-close-window:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            color: white;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+        .footer-note {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #b7b9cc;
+        }
     </style>
 </head>
 <body>
-<div class="prescription-card">
-    <div class="header">
-        <div class="title">PHIẾU CHỈ ĐỊNH KHÁM SỨC KHỎE ĐỊNH KỲ</div>
-        <div>(Dành cho nhân viên công ty)</div>
+<div class="error-card">
+    <div class="error-header">
+        <i class="bi bi-file-earmark-x-fill"></i>
+        <h3>Không tìm thấy phiếu chỉ định</h3>
     </div>
-    <div class="info-row"><strong>Mã nhân viên:</strong> <?= htmlspecialchars($emp['emp_no']) ?></div>
-    <div class="info-row"><strong>Họ và tên:</strong> <?= htmlspecialchars($emp['name']) ?></div>
-    <div class="info-row"><strong>Bộ phận:</strong> <?= htmlspecialchars($emp['bp']) ?></div>
-    <div class="info-row"><strong>Giới tính:</strong> <?= htmlspecialchars($emp['gender']) ?></div>
-    <div class="info-row"><strong>Số CMND/CCCD:</strong> <?= htmlspecialchars($emp['national_id']) ?></div>
-    <div class="info-row"><strong>Nơi cư trú:</strong> <?= htmlspecialchars($emp['res_place']) ?></div>
-    <hr>
-    <div class="danh-muc">
-        <strong>Danh mục khám chỉ định:</strong>
-        <ul>
-            <li>Khám lâm sàng tổng quát</li>
-            <li>Xét nghiệm máu (công thức máu, đường huyết, mỡ máu)</li>
-            <li>Xét nghiệm nước tiểu</li>
-            <li>Siêu âm ổ bụng</li>
-            <li>Điện tim</li>
-            <li>Đo thị lực, đo nhãn áp</li>
-            <li>Khám chuyên khoa: Tai - Mũi - Họng, Răng - Hàm - Mặt</li>
-        </ul>
-        <p><em>(Danh mục chỉ định có thể thay đổi theo yêu cầu chuyên môn của bác sĩ)</em></p>
+    <div class="error-body">
+        <div class="emp-code">
+            <i class="bi bi-upc-scan"></i> <?= htmlspecialchars($emp_no) ?>
+        </div>
+        <div class="message-text">
+            <i class="bi bi-info-circle-fill text-warning"></i> Hiện chưa có phiếu chỉ định nào được lưu cho nhân viên này.<br>
+            Vui lòng liên hệ quản trị viên để được hỗ trợ.
+        </div>
+        <button class="btn btn-close-window" onclick="window.close();">
+            <i class="bi bi-x-circle"></i> Đóng cửa sổ
+        </button>
+        <div class="footer-note">
+            <i class="bi bi-printer"></i> Hệ thống quản lý phiếu chỉ định
+        </div>
     </div>
-    <div class="signature">
-        <div>Ngày .... tháng .... năm 2026<br><strong>Người bệnh</strong><br>(Ký, ghi rõ họ tên)</div>
-        <div><strong>Bác sĩ chỉ định</strong><br>(Ký, đóng dấu)</div>
-    </div>
-    <div class="footer">(Phiếu này được lưu tại kho lưu trữ của công ty)</div>
-</div>
-<div class="no-print text-center" style="margin-top: 20px;">
-    <button class="btn btn-primary" onclick="window.print();">🖨️ In phiếu</button>
-    <button class="btn btn-secondary" onclick="window.close();">❌ Đóng</button>
 </div>
 </body>
 </html>
 <?php
-$html = ob_get_clean();
-file_put_contents($htmlPath, $html);
-echo $html;
+exit;
 ?>
