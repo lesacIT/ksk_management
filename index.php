@@ -37,11 +37,14 @@ $stats = $stmt->fetch(PDO::FETCH_ASSOC);
 <div class="container-fluid px-4 py-3">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-dark"><i class="bi bi-clipboard2-pulse"></i> Quản lý khám sức khỏe định kỳ</h2>
+        <h2 class="text-dark"><i class="bi bi-clipboard2-pulse"></i> Quản Lý Khám Sức Khỏe Định Kỳ TEAKWANG Cần Thơ</h2>
         <div>
+        <!--
             <a href="admin_stats.php" class="btn btn-info"><i class="bi bi-graph-up"></i> Thống kê</a>
             <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#importModal"><i class="bi bi-upload"></i> Import CSV</button>
+        -->
             <button class="btn btn-secondary" onclick="location.reload();"><i class="bi bi-arrow-repeat"></i> Tải lại</button>
+            <a href="guide.php" target="_blank" class="btn btn-light"><i class="bi bi-question-circle"></i> Hướng dẫn</a>
         </div>
     </div>
 
@@ -82,16 +85,20 @@ $stats = $stmt->fetch(PDO::FETCH_ASSOC);
     </div>
 
     <!-- Tìm kiếm nhanh theo MSNV -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header"><i class="bi bi-search"></i> Tra cứu nhân viên theo MSNV</div>
-        <div class="card-body">
-            <div class="input-group">
-                <input type="text" id="quickSearch" class="form-control search-box" placeholder="Nhập MSNV (EmpNo) hoặc quét thẻ...">
-                <button class="btn btn-primary" id="btnQuickSearch"><i class="bi bi-person-badge"></i> Lấy thông tin</button>
-            </div>
-            <div id="quickResult" class="mt-3"></div>
+   <!-- Tìm kiếm nhanh theo MSNV (hỗ trợ quét thẻ) -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header"><i class="bi bi-search"></i> Tra cứu nhân viên theo MSNV</div>
+    <div class="card-body">
+        <div class="input-group">
+            <input type="text" id="quickSearch" class="form-control search-box" 
+                   placeholder="Quét thẻ hoặc nhập MSNV (tối đa 8 ký tự)" 
+                   maxlength="8" 
+                   title="Quét thẻ (tự động Enter) hoặc nhập thủ công mã nhân viên">
+            <button class="btn btn-primary" id="btnQuickSearch"><i class="bi bi-person-badge"></i> Lấy thông tin</button>
         </div>
+        <div id="quickResult" class="mt-3"></div>
     </div>
+</div>
 
     <!-- Bảng danh sách nhân viên -->
     <div class="card shadow-sm">
@@ -202,7 +209,8 @@ $(document).ready(function() {
             { data: 'actions', orderable: false }
         ],
         order: [[0, 'asc']],
-        language: { url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" }
+        language: { url: "vi.json" }
+        
     });
 
     // Hàm cập nhật trạng thái không reload bảng
@@ -288,9 +296,28 @@ $(document).ready(function() {
             }
         }, 'json');
     });
-
+    // Xử lý quét thẻ: khi quét xong, thường kết thúc bằng phím Enter
+    $('#quickSearch').on('keypress', function(e) {
+        if (e.which === 13) { // Phím Enter
+            e.preventDefault(); // Ngăn gửi form nếu có
+            $('#btnQuickSearch').click(); // Kích hoạt nút tìm kiếm
+        }
+    });
+    // Giới hạn ô tìm kiếm nhanh: chỉ nhập 1 mã, tự động cắt bỏ dấu phẩy, khoảng trắng, xuống dòng
+    $('#quickSearch').on('input', function() {
+        var val = $(this).val();
+        // Nếu có dấu phẩy, khoảng trắng, xuống dòng thì chỉ giữ phần đầu
+        if (/[ ,\n]/.test(val)) {
+            var firstPart = val.split(/[ ,\n]+/)[0];
+            $(this).val(firstPart);
+        }
+    });
+     // Tự động bôi đen ô input khi focus (quét thẻ sẽ thay thế)
+    $('#quickSearch').on('focus', function() {
+        $(this).select();
+    });
     // Tìm kiếm nhanh
-    $('#btnQuickSearch').click(function() {
+     $('#btnQuickSearch').click(function() {
         let emp_no = $('#quickSearch').val().trim();
         if(!emp_no) return;
         $.get('api.php?action=getEmployee&emp_no='+emp_no, function(data) {
@@ -307,6 +334,8 @@ $(document).ready(function() {
             } else {
                 $('#quickResult').html('<div class="alert alert-danger">Không tìm thấy nhân viên</div>');
             }
+            // === THÊM DÒNG NÀY: sau khi tìm xong, focus và bôi đen ô input ===
+            $('#quickSearch').focus().select();
         }, 'json');
     });
 
@@ -353,6 +382,8 @@ $(document).ready(function() {
             $('#missingContent').html(html || 'Không có ai thiếu');
         }, 'json');
     });
+    // Tự động focus vào ô tìm kiếm nhanh khi trang load
+    $('#quickSearch').focus();
 });
 </script>
 <footer>Hệ thống quản lý khám sức khỏe - Hỗ trợ in chỉ định, tiếp nhận, trả hồ sơ</footer>
