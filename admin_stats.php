@@ -74,7 +74,7 @@ if (isset($_GET['export']) && $_GET['export'] == 1) {
             <div class="card shadow-sm">
                 <div class="card-header">Import danh sách nhân viên đã khám (CSV)</div>
                 <div class="card-body">
-                    <form id="importExamForm" enctype="multipart/form-data" action="import_bulk_exam.php" method="post">
+                    <form id="importExamForm" enctype="multipart/form-data" action="import_csv.php" method="post">
                         <div class="mb-3">
                             <label class="form-label">Chọn file CSV (chỉ cần cột EmpNo)</label>
                             <input type="file" name="csv_file" class="form-control" accept=".csv" required>
@@ -159,7 +159,7 @@ if (isset($_GET['export']) && $_GET['export'] == 1) {
 $(document).ready(function() {
     var table = $('#examinedTable').DataTable({
         order: [[4, 'desc']],
-        language: { url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" }
+      //language: { url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" }
     });
 
     function loadStats(from, to) {
@@ -257,7 +257,7 @@ $(document).ready(function() {
         e.preventDefault();
         var formData = new FormData(this);
         $.ajax({
-            url: 'import_bulk_exam.php',
+            url: 'import_csv.php',
             type: 'POST',
             data: formData,
             processData: false,
