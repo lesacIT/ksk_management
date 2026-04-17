@@ -207,13 +207,23 @@ $(document).ready(function() {
         language: { url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json" }
     });
 
-    // Cập nhật trạng thái qua AJAX
+    // Cập nhật trạng thái qua AJAX (không reload bảng)
     function updateStatus(emp_no, action, callback) {
         $.post('api.php', { action: action, emp_no: emp_no }, function(res) {
             if(res.success) {
                 if(callback) callback();
-                table.ajax.reload(null, false);
-                // cập nhật thống kê nhanh
+                // Tìm dòng hiện tại của nhân viên
+                var $row = $('button[data-emp="'+emp_no+'"]').closest('tr');
+                var rowData = table.row($row).data();
+                if (rowData) {
+                    if (action === 'receive') {
+                        rowData.received_badge = '<span class="badge bg-success">Đã tiếp nhận</span>';
+                    } else if (action === 'return') {
+                        rowData.returned_badge = '<span class="badge bg-success">Đã nhận</span>';
+                    }
+                    table.row($row).data(rowData).draw(false);
+                }
+                // Cập nhật thống kê nhanh
                 $.get('api.php?action=getStats', function(stats) {
                     $('.stat-card').eq(0).find('h2').text(stats.total);
                     $('.stat-card').eq(1).find('h2').text(stats.received);
@@ -221,12 +231,12 @@ $(document).ready(function() {
                     $('.stat-card').eq(3).find('h2').text(stats.returned);
                 }, 'json');
             } else {
-                alert('Lỗi: ' + res.message);
+                alert('Lỗi: ' + (res.message || 'Không xác định'));
             }
         }, 'json');
     }
 
-    // Sự kiện các nút trên bảng (delegation)
+    // Sự kiện các nút trên bảng
     $('#employeeTable').on('click', '.btn-receive', function() {
         let emp = $(this).data('emp');
         updateStatus(emp, 'receive');
@@ -237,11 +247,16 @@ $(document).ready(function() {
     });
     $('#employeeTable').on('click', '.btn-print', function() {
         let emp = $(this).data('emp');
-        // tăng số lần in qua API trước khi mở cửa sổ in
+        // Tăng số lần in và cập nhật trực tiếp dòng
         $.post('api.php', { action: 'increasePrint', emp_no: emp }, function(res) {
             if(res.success) {
+                var $row = $('button[data-emp="'+emp+'"]').closest('tr');
+                var rowData = table.row($row).data();
+                if (rowData) {
+                    rowData.printed_count = (parseInt(rowData.printed_count) || 0) + 1;
+                    table.row($row).data(rowData).draw(false);
+                }
                 window.open('print_prescription.php?emp_no=' + emp, '_blank');
-                table.ajax.reload(null, false);
             } else alert(res.message);
         }, 'json');
     });
@@ -259,8 +274,13 @@ $(document).ready(function() {
         $.post('api.php', { action: 'updateNote', emp_no: emp, note: note }, function(res) {
             if(res.success) {
                 $('#noteModal').modal('hide');
-                table.ajax.reload(null, false);
-            } else alert('Lỗi cập nhật');
+                var $row = $('button[data-emp="'+emp+'"]').closest('tr');
+                var rowData = table.row($row).data();
+                if (rowData) {
+                    rowData.note = note;
+                    table.row($row).data(rowData).draw(false);
+                }
+            } else alert('Lỗi cập nhật ghi chú');
         }, 'json');
     });
 
@@ -269,7 +289,7 @@ $(document).ready(function() {
         let emp_no = $('#quickSearch').val().trim();
         if(!emp_no) return;
         $.get('api.php?action=getEmployee&emp_no='+emp_no, function(data) {
-            if(data) {
+            if(data && data.emp_no) {
                 let html = `<div class="alert alert-info">
                     <strong>${data.name}</strong> (${data.emp_no}) - BP: ${data.bp}<br>
                     Tiếp nhận: ${data.is_received ? 'Đã' : 'Chưa'} | In: ${data.printed_count} lần | Nhận hồ sơ: ${data.is_returned ? 'Đã' : 'Chưa'}<br>
@@ -291,7 +311,7 @@ $(document).ready(function() {
     };
     window.quickReturn = (emp) => updateStatus(emp, 'return', () => $('#quickResult').empty());
 
-    // Import form (gửi đến import_csv.php)
+    // Import form
     $('#importForm').submit(function(e) {
         e.preventDefault();
         var formData = new FormData(this);
@@ -311,7 +331,7 @@ $(document).ready(function() {
         });
     });
 
-    // Nút báo cáo thiếu
+    // Modal báo cáo thiếu
     $('#missingModal').on('show.bs.modal', function() {
         $.get('api.php?action=getMissing', function(data) {
             let html = '<table class="table table-sm"><thead><tr><th>MSNV</th><th>Họ tên</th><th>Thiếu</th><th>Ghi chú</th></tr></thead><tbody>';
