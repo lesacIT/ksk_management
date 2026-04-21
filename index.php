@@ -20,6 +20,7 @@ $stats = $stmt->fetch(PDO::FETCH_ASSOC);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="https://cdn-healthcare.hellohealthgroup.com/2022/11/1669708514_6385bae2942755.91630106.jpg">
     <style>
         body { background: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .card-header { background: linear-gradient(135deg, #2c3e50, #1a2632); color: white; font-weight: bold; }
@@ -30,6 +31,10 @@ $stats = $stmt->fetch(PDO::FETCH_ASSOC);
         .badge-status { font-size: 0.8rem; }
         .search-box { border-radius: 2rem; padding: 0.5rem 1rem; }
         footer { text-align: center; margin-top: 2rem; padding: 1rem; color: #6c757d; }
+        #employeeTable td:last-child .btn {
+            min-width: 118px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -188,6 +193,16 @@ $stats = $stmt->fetch(PDO::FETCH_ASSOC);
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script>
 $(document).ready(function() {
+    // Định nghĩa hàm escapeHtml trước khi dùng
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
     // Khởi tạo DataTable
     var table = $('#employeeTable').DataTable({
         processing: true,
@@ -206,7 +221,32 @@ $(document).ready(function() {
             { data: 'printed_count' },
             { data: 'returned_badge' },
             { data: 'note' },
-            { data: 'actions', orderable: false }
+            { 
+                data: null,
+                orderable: false,
+                render: function(data, type, row) {
+                    let btns = '<div class="d-flex flex-wrap gap-1">';
+                    // Đăng ký / Hủy đăng ký
+                    if (!row.is_received) {
+                        btns += `<button class="btn btn-sm btn-success btn-receive" data-emp="${row.emp_no}">📝 Đăng ký</button>`;
+                    } else {
+                        btns += `<button class="btn btn-sm btn-danger btn-cancel-receive" data-emp="${row.emp_no}">🗑️ Hủy đăng ký</button>`;
+                    }
+                    // In chỉ định
+                    btns += `<button class="btn btn-sm btn-warning btn-print" data-emp="${row.emp_no}">🖨️ In</button>`;
+                    // Nhận hồ sơ / Hủy nhận
+                    if (!row.is_returned) {
+                        btns += `<button class="btn btn-sm btn-info btn-return" data-emp="${row.emp_no}">📄 Nhận hồ sơ</button>`;
+                    } else {
+                        btns += `<button class="btn btn-sm btn-secondary btn-cancel-return" data-emp="${row.emp_no}">❌ Hủy nhận HS</button>`;
+                    }
+                    // Ghi chú
+                    let noteAttr = escapeHtml(row.note || '');
+                    btns += `<button class="btn btn-sm btn-outline-secondary btn-note" data-emp="${row.emp_no}" data-note="${noteAttr}">📝 Ghi chú</button>`;
+                    btns += '</div>';
+                    return btns;
+                }
+            }
         ],
         order: [[0, 'asc']],
         language: { url: "vi.json" }
@@ -242,7 +282,12 @@ $(document).ready(function() {
             }
         }, 'json');
     }
-
+    function refreshQuickResult(emp_no) {
+        let currentSearchEmp = $('#quickSearch').val().trim();
+        if (currentSearchEmp === emp_no) {
+            $('#btnQuickSearch').click(); // Gọi lại tìm kiếm
+        }
+    }
     // Sự kiện các nút trên bảng
     $('#employeeTable').on('click', '.btn-receive', function() {
         let emp = $(this).data('emp');
@@ -269,6 +314,50 @@ $(document).ready(function() {
                 alert(res.message);
             }
         }, 'json');
+    });
+
+    /*
+    // Hủy tiếp nhận
+    $('#employeeTable').on('click', '.btn-cancel-receive', function() {
+        let emp = $(this).data('emp');
+        let $row = $(this).closest('tr');
+        let rowData = table.row($row).data();
+        if (rowData && rowData.is_received != 1) {
+            alert('Nhân viên này chưa được tiếp nhận, không thể hủy!');
+            return;
+        }
+        if (confirm('⚠️ Bạn có chắc chắn muốn HỦY trạng thái TIẾP NHẬN của nhân viên ' + emp + '?')) {
+            updateStatus(emp, 'cancel_receive');
+        }
+    });
+
+    // Hủy nhận hồ sơ
+    $('#employeeTable').on('click', '.btn-cancel-return', function() {
+        let emp = $(this).data('emp');
+        let $row = $(this).closest('tr');
+        let rowData = table.row($row).data();
+        if (rowData && rowData.is_returned != 1) {
+            alert('Nhân viên này chưa được nhận hồ sơ, không thể hủy!');
+            return;
+        }
+        if (confirm('⚠️ Bạn có chắc chắn muốn HỦY trạng thái NHẬN HỒ SƠ của nhân viên ' + emp + '?')) {
+            updateStatus(emp, 'cancel_return');
+        }
+    });
+    */
+
+     $('#employeeTable').on('click', '.btn-cancel-receive', function() {
+        let emp = $(this).data('emp');
+        if (confirm('⚠️ Hủy đăng ký tiếp nhận của nhân viên ' + emp + '?')) {
+            updateStatus(emp, 'cancel_receive');
+        }
+    });
+
+    $('#employeeTable').on('click', '.btn-cancel-return', function() {
+        let emp = $(this).data('emp');
+        if (confirm('⚠️ Hủy nhận hồ sơ của nhân viên ' + emp + '?')) {
+            updateStatus(emp, 'cancel_return');
+        }
     });
     $('#employeeTable').on('click', '.btn-note', function() {
         let emp = $(this).data('emp');
@@ -318,32 +407,68 @@ $(document).ready(function() {
     });
     // Tìm kiếm nhanh
      $('#btnQuickSearch').click(function() {
-        let emp_no = $('#quickSearch').val().trim();
-        if(!emp_no) return;
-        $.get('api.php?action=getEmployee&emp_no='+emp_no, function(data) {
-            if(data && data.emp_no) {
-                let html = `<div class="alert alert-info">
-                    <strong>${data.name}</strong> (${data.emp_no}) - BP: ${data.bp}<br>
-                    Tiếp nhận: ${data.is_received ? 'Đã' : 'Chưa'} | In: ${data.printed_count} lần | Nhận hồ sơ: ${data.is_returned ? 'Đã' : 'Chưa'}<br>
-                    Ghi chú: ${data.note || '--'}<br>
-                    <button class="btn btn-sm btn-primary mt-2" onclick="quickReceive('${data.emp_no}')">Tiếp nhận</button>
-                    <button class="btn btn-sm btn-warning mt-2" onclick="quickPrint('${data.emp_no}')">In chỉ định</button>
-                    <button class="btn btn-sm btn-secondary mt-2" onclick="quickReturn('${data.emp_no}')">Nhận hồ sơ</button>
-                </div>`;
-                $('#quickResult').html(html);
+    let emp_no = $('#quickSearch').val().trim();
+    if(!emp_no) return;
+    $.get('api.php?action=getEmployee&emp_no='+emp_no, function(data) {
+        if(data && data.emp_no) {
+            // Tạo các nút có điều kiện
+            let receiveBtn = '';
+            if (data.is_received) {
+                receiveBtn = `<button class="btn btn-sm btn-danger mt-2" onclick="quickCancelReceive('${data.emp_no}')">🗑️ Hủy đăng ký</button>`;
             } else {
-                $('#quickResult').html('<div class="alert alert-danger">Không tìm thấy nhân viên</div>');
+                receiveBtn = `<button class="btn btn-sm btn-primary mt-2" onclick="quickReceive('${data.emp_no}')">📝 Đăng ký</button>`;
             }
-            // === THÊM DÒNG NÀY: sau khi tìm xong, focus và bôi đen ô input ===
-            $('#quickSearch').focus().select();
-        }, 'json');
-    });
+            
+            let returnBtn = '';
+            if (data.is_returned) {
+                returnBtn = `<button class="btn btn-sm btn-secondary mt-2" onclick="quickCancelReturn('${data.emp_no}')">❌ Hủy nhận hồ sơ</button>`;
+            } else {
+                returnBtn = `<button class="btn btn-sm btn-info mt-2" onclick="quickReturn('${data.emp_no}')">📄 Nhận hồ sơ</button>`;
+            }
+            
+            let html = `<div class="alert alert-info">
+                <strong>${data.name}</strong> (${data.emp_no}) - BP: ${data.bp}<br>
+                Tiếp nhận: ${data.is_received ? 'Đã nhận' : 'Chưa'} | In: ${data.printed_count} lần | Nhận hồ sơ: ${data.is_returned ? 'Đã nhận' : 'Chưa'}<br>
+                Ghi chú: ${data.note || '--'}<br>
+                <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+                    ${receiveBtn}
+                    <button class="btn btn-sm btn-warning mt-2" onclick="quickPrint('${data.emp_no}')">🖨️ In chỉ định</button>
+                    ${returnBtn}
+                </div>
+            </div>`;
+            $('#quickResult').html(html);
+        } else {
+            $('#quickResult').html('<div class="alert alert-danger">Không tìm thấy nhân viên</div>');
+        }
+        $('#quickSearch').focus().select();
+    }, 'json');
+});
 
-    window.quickReceive = (emp) => updateStatus(emp, 'receive', () => $('#quickResult').empty());
+    window.quickCancelReceive = (emp) => {
+    updateStatus(emp, 'cancel_receive', () => {
+        refreshQuickResult(emp);
+    });
+};
+
+window.quickCancelReturn = (emp) => {
+    updateStatus(emp, 'cancel_return', () => {
+        refreshQuickResult(emp);
+    });
+};
     window.quickPrint = (emp) => {
         $.post('api.php', { action: 'increasePrint', emp_no: emp }, function(res) {
             if(res.success) window.open('print_prescription.php?emp_no='+emp, '_blank');
         }, 'json');
+    };
+    window.quickCancelReceive = (emp) => {
+        if (confirm('⚠️ Hủy đăng ký tiếp nhận của nhân viên ' + emp + '?')) {
+            updateStatus(emp, 'cancel_receive', () => refreshQuickResult(emp));
+        }
+    };
+    window.quickCancelReturn = (emp) => {
+        if (confirm('⚠️ Hủy nhận hồ sơ của nhân viên ' + emp + '?')) {
+            updateStatus(emp, 'cancel_return', () => refreshQuickResult(emp));
+        }
     };
     window.quickReturn = (emp) => updateStatus(emp, 'return', () => $('#quickResult').empty());
 

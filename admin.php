@@ -39,6 +39,7 @@ if (isset($_GET['export']) && $_GET['export'] == 1) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="https://cdn-healthcare.hellohealthgroup.com/2022/11/1669708514_6385bae2942755.91630106.jpg">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { background: #f4f6f9; }
@@ -57,18 +58,20 @@ if (isset($_GET['export']) && $_GET['export'] == 1) {
         <div class="card-header">Chọn khoảng thời gian</div>
         <div class="card-body">
             <div class="row g-3">
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <label class="form-label">Từ ngày</label>
                     <input type="date" id="fromDate" class="form-control" value="<?= date('Y-m-d', strtotime('-7 days')) ?>">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <label class="form-label">Đến ngày</label>
                     <input type="date" id="toDate" class="form-control" value="<?= date('Y-m-d') ?>">
                 </div>
-                <div class="col-md-4 d-flex align-items-end">
+                <div class="col-md-12 d-flex align-items-end">
                     <button class="btn btn-primary me-2" id="btnFilter"><i class="bi bi-search"></i> Thống kê</button>
                     <button class="btn btn-success me-2" id="btnExport"><i class="bi bi-file-earmark-excel"></i> Xuất CSV</button>
-                    <a href="admin_stats.php" class="btn btn-warning me-2"><i class="bi bi-people"></i>Nhập danh sách </a>
+                    <a href="admin_stats.php" class="btn btn-warning me-2"><i class="bi bi-people"></i> Nhập danh sách</a>
+                    <a href="note_stats.php" class="btn btn-info me-2"><i class="bi bi-journal-text"></i> Báo cáo MSXN</a>
+                    <a href="unexamined_stats.php" class="btn btn-dark"><i class="bi bi-person-x"></i> Thống kê chưa khám</a>
                 </div>
             </div>
         </div>

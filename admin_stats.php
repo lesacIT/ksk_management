@@ -31,6 +31,7 @@ if (isset($_GET['export']) && $_GET['export'] == 1) {
     <title>Admin - Thống kê & Import danh sách khám</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="icon" type="image/jpeg" href="https://cdn-healthcare.hellohealthgroup.com/2022/11/1669708514_6385bae2942755.91630106.jpg">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { background: #f0f2f5; }
@@ -107,6 +108,7 @@ if (isset($_GET['export']) && $_GET['export'] == 1) {
                         <div class="col-md-4 d-flex align-items-end">
                             <button class="btn btn-primary me-2" id="btnFilter"><i class="bi bi-search"></i> Thống kê</button>
                             <button class="btn btn-success" id="btnExport"><i class="bi bi-download"></i> Xuất CSV</button>
+                             
                         </div>
                     </div>
                     <div class="mt-2">

@@ -24,24 +24,26 @@ if ($action == 'getEmployees') {
     $stmt->execute();
     $data = [];
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $received_badge = $row['is_received'] ? '<span class="badge bg-success">Đã tiếp nhận</span>' : '<span class="badge bg-secondary">Chưa</span>';
-        $returned_badge = $row['is_returned'] ? '<span class="badge bg-success">Đã nhận</span>' : '<span class="badge bg-danger">Chưa</span>';
-        $actions = '<button class="btn btn-sm btn-primary btn-receive" data-emp="'.$row['emp_no'].'">Tiếp nhận</button> ';
-        $actions .= '<button class="btn btn-sm btn-warning btn-print" data-emp="'.$row['emp_no'].'">In chỉ định</button> ';
-        $actions .= '<button class="btn btn-sm btn-secondary btn-return" data-emp="'.$row['emp_no'].'">Nhận hồ sơ</button> ';
-        $actions .= '<button class="btn btn-sm btn-info btn-note" data-emp="'.$row['emp_no'].'" data-note="'.htmlspecialchars($row['note']).'">Ghi chú</button>';
-        $data[] = [
-            'emp_no' => $row['emp_no'],
-            'name' => $row['name'],
-            'bp' => $row['bp'],
-            'gender' => $row['gender'],
-            'received_badge' => $received_badge,
-            'printed_count' => $row['printed_count'],
-            'returned_badge' => $returned_badge,
-            'note' => htmlspecialchars($row['note']),
-            'actions' => $actions
-        ];
-    }
+    $received_badge = $row['is_received'] ? '<span class="badge bg-success">Đã tiếp nhận</span>' : '<span class="badge bg-secondary">Chưa</span>';
+    $returned_badge = $row['is_returned'] ? '<span class="badge bg-success">Đã nhận</span>' : '<span class="badge bg-danger">Chưa</span>';
+    $actions = '<button class="btn btn-sm btn-primary btn-receive" data-emp="'.$row['emp_no'].'">Tiếp nhận</button> ';
+    $actions .= '<button class="btn btn-sm btn-warning btn-print" data-emp="'.$row['emp_no'].'">In chỉ định</button> ';
+    $actions .= '<button class="btn btn-sm btn-secondary btn-return" data-emp="'.$row['emp_no'].'">Nhận hồ sơ</button> ';
+    $actions .= '<button class="btn btn-sm btn-info btn-note" data-emp="'.$row['emp_no'].'" data-note="'.htmlspecialchars($row['note']).'">Ghi chú</button>';
+    $data[] = [
+        'emp_no' => $row['emp_no'],
+        'name' => $row['name'],
+        'bp' => $row['bp'],
+        'gender' => $row['gender'],
+        'is_received' => (int)$row['is_received'],   // Ép kiểu int
+        'is_returned' => (int)$row['is_returned'],   // Ép kiểu int
+        'received_badge' => $received_badge,
+        'printed_count' => $row['printed_count'],
+        'returned_badge' => $returned_badge,
+        'note' => htmlspecialchars($row['note']),
+        'actions' => $actions
+    ];
+}
     $total = $pdo->query("SELECT COUNT(*) FROM employees")->fetchColumn();
     echo json_encode(['draw' => $draw, 'recordsTotal' => $total, 'recordsFiltered' => $total, 'data' => $data]);
     exit;
@@ -60,6 +62,20 @@ if ($action == 'return') {
     $now = date('Y-m-d H:i:s');
     $stmt = $pdo->prepare("UPDATE employees SET is_returned=1, returned_date=? WHERE emp_no=?");
     $success = $stmt->execute([$now, $emp_no]);
+    echo json_encode(['success' => $success]);
+    exit;
+}
+if ($action == 'cancel_receive') {
+    $emp_no = $_POST['emp_no'];
+    $stmt = $pdo->prepare("UPDATE employees SET is_received = 0 WHERE emp_no = ?");
+    $success = $stmt->execute([$emp_no]);
+    echo json_encode(['success' => $success]);
+    exit;
+}
+if ($action == 'cancel_return') {
+    $emp_no = $_POST['emp_no'];
+    $stmt = $pdo->prepare("UPDATE employees SET is_returned = 0 WHERE emp_no = ?");
+    $success = $stmt->execute([$emp_no]);
     echo json_encode(['success' => $success]);
     exit;
 }
